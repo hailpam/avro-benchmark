@@ -1,0 +1,30 @@
+Benchamrk Summary
+{
+  #tests: 100
+  #repetitions: 5
+
+  64bytes payload:
+       mean[us]: 0.08
+    size[bytes]: 80.0
+  128bytes payload:
+       mean[us]: 0.144
+    size[bytes]: 144.0
+  256bytes payload:
+       mean[us]: 0.272
+    size[bytes]: 272.0
+  512bytes payload:
+       mean[us]: 0.528
+    size[bytes]: 528.0
+  1024bytes payload:
+       mean[us]: 1.04
+    size[bytes]: 1040.0
+  2048bytes payload:
+       mean[us]: 2.064
+    size[bytes]: 2064.0
+  4096bytes payload:
+       mean[us]: 4.112
+    size[bytes]: 4112.0
+  8192bytes payload:
+       mean[us]: 8.209
+    size[bytes]: 8209.0
+}

@@ -1,0 +1,5 @@
+org/pm/avro/test/AvroTest.class
+example/avro/Message.class
+example/avro/Message$1.class
+org/pm/avro/test/AvroSerializer.class
+example/avro/Message$Builder.class
