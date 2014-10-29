@@ -2,15 +2,12 @@
 package org.pm.avro.test;
 
 import example.avro.Message;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import org.apache.avro.file.DataFileStream;
-import org.apache.avro.file.DataFileWriter;
+import org.apache.avro.io.BinaryDecoder;
 import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.DatumReader;
 import org.apache.avro.io.DatumWriter;
-import org.apache.avro.io.Decoder;
 import org.apache.avro.io.DecoderFactory;
 import org.apache.avro.io.EncoderFactory;
 import org.apache.avro.specific.SpecificDatumReader;
@@ -24,7 +21,14 @@ public class AvroSerializer
 {
     private static AvroSerializer instance;
     
-    private AvroSerializer() {}
+    private boolean inited;
+    
+    private DatumReader<Message> reader;
+    private DatumWriter<Message> writer;
+    
+    private ByteArrayOutputStream baos;
+    
+    private AvroSerializer() { this.inited = false; }
     
     public synchronized static AvroSerializer instance() 
     {
@@ -34,29 +38,46 @@ public class AvroSerializer
         return instance;
     }
     
-    public byte[] serialize(Message msg) throws IOException
+    public byte[] serialize(Message msg) throws IOException, IllegalStateException
     {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        BinaryEncoder encoder = EncoderFactory.get().binaryEncoder(out, null);
-        DatumWriter<Message> writer = new SpecificDatumWriter<>(Message.getClassSchema());
+        if(!inited)
+            throw new IllegalStateException("Serializer must be initialized");
+        
+        this.baos.reset();
+        BinaryEncoder encoder = EncoderFactory.get().binaryEncoder(this.baos, null);
+        
         
         writer.write(msg, encoder);
         encoder.flush();
-        out.close();
+        this.baos.flush();
         
-        return out.toByteArray();
+        return this.baos.toByteArray();
     }
     
-    public Object deserialize(byte[] msg) throws IOException
+    public Object deserialize(byte[] msg) throws IOException, IllegalStateException
     { 
-        SpecificDatumReader<Message> reader = new SpecificDatumReader<>(Message.getClassSchema());
-        Decoder decoder = DecoderFactory.get().binaryDecoder(msg, null);
+        if(!inited)
+            throw new IllegalStateException("Serializer must be initialized");
+        
+        BinaryDecoder decoder = DecoderFactory.get().binaryDecoder(msg, null);
         
         return reader.read(null, decoder);
     }
     
-    public void setUp() throws IOException { /**TODO : reuse*/ }
+    public void setUp() throws IOException 
+    {
+        this.reader = new SpecificDatumReader<>(Message.getClassSchema());
+        this.writer = new SpecificDatumWriter<>(Message.getClassSchema());
+        this.baos = new ByteArrayOutputStream();
+        this.inited = true;
+    }
     
-    public void tearDown() throws IOException { /**TODO : reuse*/ }
+    public void tearDown() throws IOException 
+    {
+        this.reader = null;
+        this.writer = null;
+        this.baos.close();
+        this.inited = false;
+    }
     
 }

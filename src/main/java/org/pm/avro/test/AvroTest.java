@@ -17,9 +17,9 @@ import org.apache.commons.math3.stat.StatUtils;
  */
 public class AvroTest {
 
-    private static int[] PAYLOAD_SIZES = {64, 128, 256, 512, 1024, 2048, 4096, 8192};
+    private static int[] PAYLOAD_SIZES = {64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768};
 
-    private static final int TESTS = 100;
+    private static final int TESTS = 1000;
     private static final int REPETITIONS = 5;
     
     private static final int RESCALE = 1000;
@@ -35,26 +35,29 @@ public class AvroTest {
         
         int cumulativeSize = 0;
         
+        long startBenchmark = System.currentTimeMillis();
         try {
             AvroSerializer.instance().setUp();
             
             for(int s = 0; s < PAYLOAD_SIZES.length; s++) {
                 for (int t = 0; t < TESTS; t++) {
-                    long start = System.nanoTime();
+                    long startTest = System.nanoTime();
                     for (int r = 0; r < REPETITIONS; r++) {
                         Collection<Message> messages = createMessages(1, PAYLOAD_SIZES[s]);
 
                         Iterator<Message> itr = messages.iterator();
                         while (itr.hasNext()) {
-                            byte[] msgBytes = AvroSerializer.instance().serialize(itr.next());
+                            Message orgMsg = itr.next();
+                            if (DEBUG) 
+                                System.out.println("Original:\n   " +orgMsg);
+                            byte[] msgBytes = AvroSerializer.instance().serialize(orgMsg);
                             cumulativeSize += msgBytes.length;
-                            Message message = (Message) AvroSerializer.instance().deserialize(msgBytes);
-                            if (DEBUG) {
-                                System.out.println(message);
-                            }
+                            Message rebMsg = (Message) AvroSerializer.instance().deserialize(msgBytes);
+                            if (DEBUG) 
+                                System.out.println("Rebuilt:\n   " +rebMsg);
                         }
                     }
-                    times[t] = ((System.nanoTime() - start) / REPETITIONS);
+                    times[t] = ((System.nanoTime() - startTest) / REPETITIONS);
                     sizes[t] = cumulativeSize / REPETITIONS;
                     cumulativeSize = 0;
                 }
@@ -67,7 +70,8 @@ public class AvroTest {
             ioe.printStackTrace();
         }
         
-        printSummary(sizesSummary, sizesSummary);
+        printSummary(sizesSummary, sizesSummary, 
+                        (System.currentTimeMillis() - startBenchmark));
     }
 
     private static Collection<Message> createMessages(int nr, int size) 
@@ -80,9 +84,7 @@ public class AvroTest {
                     .setHeader(Long.toString(System.nanoTime()))
                     .setPayload(payload)
                     .build();
-            if (DEBUG) {
-                System.out.println(msg);
-            }
+            
             messages.add(msg);
         }
 
@@ -90,10 +92,13 @@ public class AvroTest {
     }
     
     private static void printSummary(Map<Integer, Double> times,
-                                        Map<Integer, Double> sizes) 
+                                        Map<Integer, Double> sizes, 
+                                            long timeSpent) 
     {
         StringBuilder sBuilder = new StringBuilder();
-        sBuilder.append("Benchamrk Summary\n");
+        sBuilder.append("Benchamrk Summary - [");
+        sBuilder.append(Long.toString(timeSpent));
+        sBuilder.append("ms]\n");
         sBuilder.append("{");
         sBuilder.append("\n  #tests: ");
         sBuilder.append(Integer.toString(TESTS));
@@ -101,7 +106,7 @@ public class AvroTest {
         sBuilder.append(Integer.toString(REPETITIONS));
         sBuilder.append("\n");
         for(Integer key: times.keySet()) {
-            sBuilder.append("\n  ");
+            sBuilder.append("\n\n  ");
             sBuilder.append(key.toString() +"bytes payload:");
             sBuilder.append("\n       mean[us]: ");
             sBuilder.append(Double.toString(times.get(key) / RESCALE ) );
