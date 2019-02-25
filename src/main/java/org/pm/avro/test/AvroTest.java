@@ -70,7 +70,7 @@ public class AvroTest {
             ioe.printStackTrace();
         }
         
-        printSummary(sizesSummary, sizesSummary, 
+        printSummary(timesSummary, sizesSummary, 
                         (System.currentTimeMillis() - startBenchmark));
     }
 
